@@ -2,6 +2,10 @@ namespace RuntimeInvestigation.Domain.Entities;
 
 public class ApplicationEntity
 {
+    protected ApplicationEntity()
+    {
+    }
+
     public ApplicationEntity(string name, string? description = null)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -15,8 +19,8 @@ public class ApplicationEntity
         CreatedAt = DateTime.UtcNow;
     }
 
-    public string Id { get; private set; }
-    public string Name { get; private set; }
+    public string Id { get; private set; } = string.Empty;
+    public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public DateTime CreatedAt { get; private set; }
 }

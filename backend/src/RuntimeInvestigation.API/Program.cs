@@ -7,7 +7,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<IApplicationRepository, InMemoryApplicationRepository>();
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoDbSettings>>().Value);
+builder.Services.AddSingleton<IApplicationRepository, MongoApplicationRepository>();
 builder.Services.AddScoped<ApplicationService>();
 
 var app = builder.Build();
