@@ -32,8 +32,28 @@ public class ApplicationsController : ControllerBase
         }
 
         var created = await _applicationService.CreateAsync(request.Name, request.Description, cancellationToken);
-        return CreatedAtAction(nameof(GetAll), new { id = created.Id }, created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApplicationDto>> GetById(string id, CancellationToken cancellationToken)
+    {
+        var application = await _applicationService.GetByIdAsync(id, cancellationToken);
+        return application is null ? NotFound() : Ok(application);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ApplicationDto>> Update(string id, [FromBody] UpdateApplicationRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest("Application name is required.");
+        var updated = await _applicationService.UpdateAsync(id, request.Name, request.Description, cancellationToken);
+        return updated is null ? NotFound() : Ok(updated);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken) =>
+        await _applicationService.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
 }
 
 public sealed record CreateApplicationRequest(string Name, string? Description);
+public sealed record UpdateApplicationRequest(string Name, string? Description);

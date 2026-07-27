@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using RuntimeInvestigation.API.Models;
 using RuntimeInvestigation.Application.Features.Applications;
 using RuntimeInvestigation.Infrastructure.Persistence.Repositories;
+using RuntimeInvestigation.Shared.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<ApplicationService>();
 
 var app = builder.Build();
+app.UsePlatformExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {
@@ -64,4 +66,4 @@ app.MapControllers();
 
 app.Run();
 
-public partial class Program {}
+public partial class Program { }

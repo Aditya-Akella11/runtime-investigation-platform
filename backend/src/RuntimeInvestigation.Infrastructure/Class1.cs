@@ -1,4 +1,4 @@
-﻿namespace RuntimeInvestigation.Infrastructure;
+namespace RuntimeInvestigation.Infrastructure;
 
 public class Class1
 {

@@ -12,6 +12,8 @@ This is not another observability, logging, or monitoring platform. It is an inv
 - finding root cause quickly
 - removing instrumentation automatically after use
 
+The MVP is demo-first: a controlled payment application with intentional defects proves the complete workflow before the real .NET agent is built.
+
 ## Architecture First Approach
 
 The implementation must stay aligned with the architectural documents in the documentation/ folder. Those documents are the single source of truth and should not be changed without explicit approval.
@@ -27,6 +29,7 @@ The implementation must stay aligned with the architectural documents in the doc
 - infrastructure/ - deployment and environment assets
 - scripts/ - automation scripts
 - tests/ - automated tests
+- demo/ - controlled demo applications and scenarios
 
 ## Architectural Documents
 
@@ -35,7 +38,10 @@ The implementation must stay aligned with the architectural documents in the doc
 - documentation/03_TECH_STACK_AND_STANDARDS.md
 - documentation/04_DEVELOPMENT_GUIDELINES.md
 - documentation/05_PROJECT_ROADMAP.md
+- documentation/06_EPIC_1_IMPLEMENTATION_TRACKER.md
 
 ## Current Development Direction
 
-Build the platform incrementally, one module at a time. Each module should be production-ready before moving to the next.
+The immediate goal is to prove the complete probe lifecycle with a mock agent and a controlled demo Payment API: create, persist, dispatch, activate, collect evidence, audit, and expire. The first production runtime agent will target .NET and a narrow set of probes. Java, Python, and Node are deferred until the .NET workflow is safe, measurable, and validated with users.
+
+The runtime agent - not Angular, MongoDB, or the API framework - is the intended technical moat. For MVP validation, the user experience is proven first through a controlled demo Payment API and a mock agent. See the architecture and roadmap documents for the safety constraints and staged delivery plan.
