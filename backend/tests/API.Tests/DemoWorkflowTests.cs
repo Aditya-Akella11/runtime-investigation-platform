@@ -26,8 +26,7 @@ public class DemoWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
             Environment = "Production",
             Description = "Investigate duplicate charges"
         });
-
-        investigationResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrow(investigationResponse);
         var investigation = await investigationResponse.Content.ReadFromJsonAsync<InvestigationResponse>();
         Assert.NotNull(investigation);
 
@@ -42,20 +41,27 @@ public class DemoWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
             DurationMinutes = 15
         });
 
-        probeResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrow(probeResponse);
         var probe = await probeResponse.Content.ReadFromJsonAsync<ProbeResponse>();
         Assert.NotNull(probe);
 
         var deployResponse = await client.PostAsync($"/api/demoWorkflow/probes/{probe!.Id}/deploy", null);
-        deployResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrow(deployResponse);
 
         var evidenceResponse = await client.GetAsync("/api/demoWorkflow/evidence");
-        evidenceResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrow(evidenceResponse);
         var evidence = await evidenceResponse.Content.ReadFromJsonAsync<EvidenceResponse[]>();
 
         Assert.NotNull(evidence);
         Assert.NotEmpty(evidence!);
         Assert.Contains(evidence!, item => item.ProbeId == probe.Id);
+    }
+
+    private static async Task EnsureSuccessOrThrow(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode) return;
+        var body = await response.Content.ReadAsStringAsync();
+        throw new Exception($"Request failed: {(int)response.StatusCode} {response.ReasonPhrase}\nBody: {body}");
     }
 
     private async Task<HttpClient> CreateAuthenticatedClientAsync()
