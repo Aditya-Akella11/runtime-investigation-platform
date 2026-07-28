@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using RuntimeInvestigation.API.Models;
+using RuntimeInvestigation.API.Services;
 using RuntimeInvestigation.Application.Features.Applications;
 using RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 using RuntimeInvestigation.Shared.Extensions;
@@ -15,6 +16,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoDbSettings>>().Value);
 builder.Services.AddSingleton<IApplicationRepository, MongoApplicationRepository>();
+builder.Services.AddSingleton<DemoWorkflowStore>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<JwtSettings>>().Value);
