@@ -80,6 +80,10 @@ export class DemoWorkflowService {
     return this.http.post<RuntimeProbe>(`${this.baseUrl}/probes/${id}/remove`, {});
   }
 
+  expireProbe(id: string) {
+    return this.http.post<RuntimeProbe>(`${this.baseUrl}/probes/${id}/expire`, {});
+  }
+
   getEvidence() {
     return this.http.get<Evidence[]>(`${this.baseUrl}/evidence`);
   }

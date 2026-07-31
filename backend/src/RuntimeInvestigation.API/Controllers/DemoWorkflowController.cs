@@ -68,6 +68,13 @@ public class DemoWorkflowController : ControllerBase
         return probe is null ? NotFound() : Ok(probe);
     }
 
+    [HttpPost("probes/{id}/expire")]
+    public ActionResult<RuntimeProbeRecord> ExpireProbe(string id)
+    {
+        var probe = _store.ExpireProbe(id);
+        return probe is null ? NotFound() : Ok(probe);
+    }
+
     [HttpGet("evidence")]
     public ActionResult<IReadOnlyCollection<EvidenceRecord>> GetEvidence() => Ok(_store.GetEvidence());
 

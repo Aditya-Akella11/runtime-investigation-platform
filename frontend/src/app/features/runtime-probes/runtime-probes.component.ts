@@ -28,6 +28,7 @@ import { DemoWorkflowService, RuntimeProbe } from '../../core/demo-workflow.serv
           <div class="actions">
             <button type="button" (click)="deploy(probe.id)">Deploy</button>
             <button type="button" (click)="remove(probe.id)">Remove</button>
+            <button type="button" (click)="expire(probe.id)">Expire</button>
           </div>
         </article>
       </div>
@@ -86,5 +87,9 @@ export class RuntimeProbesComponent implements OnInit {
 
   remove(id: string): void {
     this.workflow.removeProbe(id).subscribe(() => this.refresh());
+  }
+
+  expire(id: string): void {
+    this.workflow.expireProbe(id).subscribe(() => this.refresh());
   }
 }

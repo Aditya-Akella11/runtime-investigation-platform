@@ -68,6 +68,19 @@ public sealed class DemoWorkflowStore
         return removed;
     }
 
+    public RuntimeProbeRecord? ExpireProbe(string id)
+    {
+        if (!_probes.TryGetValue(id, out var probe))
+        {
+            return null;
+        }
+
+        var expired = probe with { Status = "Expired" };
+        _probes[id] = expired;
+        AddAudit("ProbeExpired", id, $"Probe '{id}' expired.");
+        return expired;
+    }
+
     public void AddAudit(string eventType, string subjectId, string message) =>
         _audit.Enqueue(new AuditEntry(Guid.NewGuid().ToString("N"), eventType, subjectId, message, DateTimeOffset.UtcNow));
 }

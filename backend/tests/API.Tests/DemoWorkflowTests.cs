@@ -57,6 +57,34 @@ public class DemoWorkflowTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Contains(evidence!, item => item.ProbeId == probe.Id);
     }
 
+    [Fact]
+    public async Task ExpiringProbe_ShouldMarkProbeExpired()
+    {
+        var client = await CreateAuthenticatedClientAsync();
+
+        var probeResponse = await client.PostAsJsonAsync("/api/demoWorkflow/probes", new
+        {
+            InvestigationId = "investigation-1",
+            Application = "Payment API",
+            ProbeType = "Log",
+            TargetClass = "PaymentService",
+            TargetMethod = "ProcessPayment",
+            Condition = "Amount > 1000",
+            DurationMinutes = 1
+        });
+
+        await EnsureSuccessOrThrow(probeResponse);
+        var probe = await probeResponse.Content.ReadFromJsonAsync<ProbeResponse>();
+        Assert.NotNull(probe);
+
+        var expireResponse = await client.PostAsync($"/api/demoWorkflow/probes/{probe!.Id}/expire", null);
+        await EnsureSuccessOrThrow(expireResponse);
+
+        var updated = await expireResponse.Content.ReadFromJsonAsync<ProbeResponse>();
+        Assert.NotNull(updated);
+        Assert.Equal("Expired", updated!.Status);
+    }
+
     private static async Task EnsureSuccessOrThrow(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode) return;
