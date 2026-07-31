@@ -47,6 +47,33 @@ app.MapPost("/probes/{probeId}/evidence", (string probeId, EvidenceEnvelope enve
     return Results.Ok(evidence);
 });
 
+app.MapPost("/probes/{probeId}/tick", (string probeId, MockAgentStore store, MockEvidenceGenerator generator) =>
+{
+    if (!store.TryGet(probeId, out var state))
+    {
+        return Results.NotFound(new { error = "Probe not found." });
+    }
+
+    if (state.Status is ProbeLifecycle.Removed or ProbeLifecycle.Expired)
+    {
+        return Results.Conflict(new { error = $"Probe is {state.Status}." });
+    }
+
+    var evidence = generator.Generate(
+        probeId,
+        new EvidenceEnvelope(Guid.NewGuid().ToString("N"), new Dictionary<string, string>
+        {
+            ["CustomerId"] = Random.Shared.Next(1000, 9999).ToString(),
+            ["Amount"] = Random.Shared.Next(50, 1000).ToString(),
+            ["GatewayResponse"] = Random.Shared.Next(100) < 35 ? "Timeout" : "Success",
+            ["Retry"] = Random.Shared.Next(0, 3).ToString()
+        }),
+        state);
+
+    store.AppendEvidence(probeId, evidence);
+    return Results.Ok(evidence);
+});
+
 app.MapGet("/probes/{probeId}/results", (string probeId, MockAgentStore store) =>
 {
     return store.TryGet(probeId, out var state)
@@ -58,6 +85,13 @@ app.MapPost("/probes/{probeId}/remove", (string probeId, MockAgentStore store) =
 {
     return store.Remove(probeId)
         ? Results.Ok(new { probeId, status = "removed" })
+        : Results.NotFound(new { error = "Probe not found." });
+});
+
+app.MapPost("/probes/{probeId}/expire", (string probeId, MockAgentStore store) =>
+{
+    return store.Expire(probeId)
+        ? Results.Ok(new { probeId, status = "expired" })
         : Results.NotFound(new { error = "Probe not found." });
 });
 
@@ -110,6 +144,17 @@ public sealed class MockAgentStore
         }
 
         _probes[probeId] = state with { Status = ProbeLifecycle.Removed };
+        return true;
+    }
+
+    public bool Expire(string probeId)
+    {
+        if (!_probes.TryGetValue(probeId, out var state))
+        {
+            return false;
+        }
+
+        _probes[probeId] = state with { Status = ProbeLifecycle.Expired };
         return true;
     }
 }
