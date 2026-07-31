@@ -11,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoDbSettings>>().Value);
@@ -45,6 +46,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddScoped<ApplicationService>();
+builder.Services.AddSingleton<IProbeDispatcher, MockAgentProbeDispatcher>();
 
 var app = builder.Build();
 
@@ -63,6 +65,7 @@ if (!disableHttpsRedirection)
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health/ready");
 
 app.Run();
 

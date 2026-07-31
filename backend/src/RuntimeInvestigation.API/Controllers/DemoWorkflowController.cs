@@ -10,10 +10,12 @@ namespace RuntimeInvestigation.API.Controllers;
 public class DemoWorkflowController : ControllerBase
 {
     private readonly DemoWorkflowStore _store;
+    private readonly IProbeDispatcher _dispatcher;
 
-    public DemoWorkflowController(DemoWorkflowStore store)
+    public DemoWorkflowController(DemoWorkflowStore store, IProbeDispatcher dispatcher)
     {
         _store = store;
+        _dispatcher = dispatcher;
     }
 
     [HttpGet("investigations")]
@@ -45,16 +47,24 @@ public class DemoWorkflowController : ControllerBase
     }
 
     [HttpPost("probes/{id}/deploy")]
-    public ActionResult<RuntimeProbeRecord> DeployProbe(string id)
+    public async Task<ActionResult<RuntimeProbeRecord>> DeployProbe(string id)
     {
         var probe = _store.DeployProbe(id);
+        if (probe is not null)
+        {
+            await _dispatcher.DeployAsync(probe.Id, probe.Application, probe.TargetClass, probe.TargetMethod, DateTimeOffset.UtcNow.AddMinutes(probe.DurationMinutes));
+        }
         return probe is null ? NotFound() : Ok(probe);
     }
 
     [HttpPost("probes/{id}/remove")]
-    public ActionResult<RuntimeProbeRecord> RemoveProbe(string id)
+    public async Task<ActionResult<RuntimeProbeRecord>> RemoveProbe(string id)
     {
         var probe = _store.RemoveProbe(id);
+        if (probe is not null)
+        {
+            await _dispatcher.RemoveAsync(probe.Id, "Removed by operator");
+        }
         return probe is null ? NotFound() : Ok(probe);
     }
 

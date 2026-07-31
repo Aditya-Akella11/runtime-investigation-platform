@@ -18,7 +18,7 @@ public sealed class DemoWorkflowStore
     {
         var record = new InvestigationRecord(Guid.NewGuid().ToString("N"), title, application, environment, description, "Active", DateTimeOffset.UtcNow);
         _investigations[record.Id] = record;
-        _audit.Enqueue(new AuditEntry(Guid.NewGuid().ToString("N"), "InvestigationCreated", record.Id, $"Investigation '{title}' created.", DateTimeOffset.UtcNow));
+        AddAudit("InvestigationCreated", record.Id, $"Investigation '{title}' created.");
         return record;
     }
 
@@ -37,7 +37,7 @@ public sealed class DemoWorkflowStore
             DateTimeOffset.UtcNow);
 
         _probes[record.Id] = record;
-        _audit.Enqueue(new AuditEntry(Guid.NewGuid().ToString("N"), "ProbeCreated", record.Id, $"Probe '{record.TargetClass}.{record.TargetMethod}' created.", DateTimeOffset.UtcNow));
+        AddAudit("ProbeCreated", record.Id, $"Probe '{record.TargetClass}.{record.TargetMethod}' created.");
         return record;
     }
 
@@ -50,7 +50,7 @@ public sealed class DemoWorkflowStore
 
         var deployed = probe with { Status = "Active" };
         _probes[id] = deployed;
-        _audit.Enqueue(new AuditEntry(Guid.NewGuid().ToString("N"), "ProbeDeployed", id, $"Probe '{id}' deployed to mock agent.", DateTimeOffset.UtcNow));
+        AddAudit("ProbeDeployed", id, $"Probe '{id}' deployed to mock agent.");
         _evidence.Enqueue(new EvidenceRecord(Guid.NewGuid().ToString("N"), id, deployed.Application, deployed.TargetClass, deployed.TargetMethod, "CustomerId=1452; Amount=120; Gateway=Timeout; Retry=1", DateTimeOffset.UtcNow));
         return deployed;
     }
@@ -64,9 +64,12 @@ public sealed class DemoWorkflowStore
 
         var removed = probe with { Status = "Removed" };
         _probes[id] = removed;
-        _audit.Enqueue(new AuditEntry(Guid.NewGuid().ToString("N"), "ProbeRemoved", id, $"Probe '{id}' removed.", DateTimeOffset.UtcNow));
+        AddAudit("ProbeRemoved", id, $"Probe '{id}' removed.");
         return removed;
     }
+
+    public void AddAudit(string eventType, string subjectId, string message) =>
+        _audit.Enqueue(new AuditEntry(Guid.NewGuid().ToString("N"), eventType, subjectId, message, DateTimeOffset.UtcNow));
 }
 
 public sealed record InvestigationRecord(string Id, string Title, string Application, string Environment, string Description, string Status, DateTimeOffset CreatedAt);
