@@ -76,10 +76,19 @@ public class DemoWorkflowController : ControllerBase
     }
 
     [HttpGet("evidence")]
-    public ActionResult<IReadOnlyCollection<EvidenceRecord>> GetEvidence() => Ok(_store.GetEvidence());
+    public ActionResult<IReadOnlyCollection<EvidenceRecord>> GetEvidence([FromQuery] string? probeId) =>
+        Ok(string.IsNullOrWhiteSpace(probeId) ? _store.GetEvidence() : _store.GetEvidenceByProbe(probeId));
 
     [HttpGet("audit")]
-    public ActionResult<IReadOnlyCollection<AuditEntry>> GetAudit() => Ok(_store.GetAudit());
+    public ActionResult<IReadOnlyCollection<AuditEntry>> GetAudit([FromQuery] string? subjectId) =>
+        Ok(string.IsNullOrWhiteSpace(subjectId) ? _store.GetAudit() : _store.GetAuditBySubject(subjectId));
+
+    [HttpPost("reset")]
+    public ActionResult ResetDemo()
+    {
+        _store.Reset();
+        return Ok(new { message = "Demo workflow reset to initial state with sample data." });
+    }
 }
 
 public sealed record CreateInvestigationRequest(string Title, string Application, string Environment, string? Description);

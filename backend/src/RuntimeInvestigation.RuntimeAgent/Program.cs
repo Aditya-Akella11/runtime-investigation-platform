@@ -6,6 +6,7 @@ using RuntimeInvestigation.Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<AgentCapabilityCatalog>();
+builder.Services.AddSingleton<RuntimeAgentDiagnostics>();
 builder.Services.AddSingleton<LocalProbeSafetyPolicy>();
 builder.Services.AddSingleton<ProbeRedactionPolicy>();
 builder.Services.AddSingleton<RuntimeInstrumentationSample>();
@@ -13,15 +14,43 @@ builder.Services.AddSingleton<RuntimeInstrumentationSample>();
 var app = builder.Build();
 
 app.MapGet("/health", (AgentCapabilityCatalog catalog) =>
-    Results.Ok(new { status = "healthy", service = "runtime-agent", protocol = AgentProtocol.Version, capabilities = catalog.GetCapabilities() }));
+    Results.Ok(new
+    {
+        status = "healthy",
+        service = "runtime-agent",
+        protocol = AgentProtocol.Version,
+        capabilities = catalog.GetCapabilities()
+    }));
 
 app.MapPost("/register", (AgentRegistrationCommand command, AgentCapabilityCatalog catalog) =>
 {
-    var approved = catalog.GetCapabilities().Intersect(command.Capabilities).ToArray();
-    return Results.Ok(new { command.AgentId, command.ProtocolVersion, approvedCapabilities = approved });
+    if (string.IsNullOrWhiteSpace(command.AgentId))
+    {
+        return Results.BadRequest(new AgentRegistrationAck(command.AgentId ?? string.Empty, AgentProtocol.Version, Array.Empty<string>(), false, "AgentId is required."));
+    }
+
+    var approved = catalog.GetCapabilities().Intersect(command.Capabilities, StringComparer.OrdinalIgnoreCase).ToArray();
+    return Results.Ok(new AgentRegistrationAck(command.AgentId, AgentProtocol.Version, approved, true));
+});
+
+app.MapPost("/probes/activate", (ProbeActivationCommand command, LocalProbeSafetyPolicy safetyPolicy) =>
+{
+    var (isAllowed, reason) = safetyPolicy.ValidateActivation(command);
+    if (!isAllowed)
+    {
+        return Results.BadRequest(new ProbeActivationAck(command.ProbeId, "Rejected", AgentProtocol.Version, false, reason));
+    }
+
+    return Results.Ok(new ProbeActivationAck(command.ProbeId, "Active", AgentProtocol.Version, true));
+});
+
+app.MapPost("/probes/{probeId}/remove", (string probeId, ProbeRemovalCommand command) =>
+{
+    return Results.Ok(new ProbeRemovalAck(probeId, "Removed", AgentProtocol.Version, true));
 });
 
 app.MapGet("/diagnostics", (RuntimeAgentDiagnostics diagnostics) => Results.Ok(diagnostics.Snapshot()));
+app.MapGet("/metrics", (RuntimeAgentDiagnostics diagnostics) => Results.Ok(diagnostics.Snapshot()));
 
 app.MapPost("/simulate", (RuntimeInstrumentationSample sample, ProbeRedactionPolicy redactionPolicy) =>
 {
@@ -34,3 +63,5 @@ app.MapPost("/simulate", (RuntimeInstrumentationSample sample, ProbeRedactionPol
 });
 
 app.Run();
+
+public partial class RuntimeAgentProgram { }

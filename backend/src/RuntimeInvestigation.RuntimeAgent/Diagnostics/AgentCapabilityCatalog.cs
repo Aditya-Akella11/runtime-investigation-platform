@@ -1,27 +1,40 @@
+using System.Diagnostics;
+using RuntimeInvestigation.Shared.Contracts;
+
 namespace RuntimeInvestigation.RuntimeAgent.Diagnostics;
 
 public sealed class AgentCapabilityCatalog
 {
-    private static readonly string[] Capabilities =
-    [
-        "log",
-        "method-entry",
-        "method-exit",
-        "parameters",
-        "exceptions"
-    ];
-
-    public IReadOnlyList<string> GetCapabilities() => Capabilities;
+    public IReadOnlyList<string> GetCapabilities() => AgentProtocol.Capabilities.All;
 }
 
 public sealed class RuntimeAgentDiagnostics
 {
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
+    private int _activeProbeCount;
+    private long _totalCapturedEvents;
 
-    public object Snapshot() => new
+    public void SetActiveProbeCount(int count) => Interlocked.Exchange(ref _activeProbeCount, count);
+    public void IncrementCapturedEvents() => Interlocked.Increment(ref _totalCapturedEvents);
+
+    public object Snapshot()
     {
-        startedAt = _startedAt,
-        version = "phase2-skeleton",
-        runtime = Environment.Version.ToString()
-    };
+        var process = Process.GetCurrentProcess();
+        return new
+        {
+            status = "healthy",
+            version = "phase2-production-ready",
+            protocol = AgentProtocol.Version,
+            startedAt = _startedAt,
+            uptimeSeconds = (DateTimeOffset.UtcNow - _startedAt).TotalSeconds,
+            activeProbes = _activeProbeCount,
+            totalCapturedEvents = Interlocked.Read(ref _totalCapturedEvents),
+            process = new
+            {
+                workingSetMB = process.WorkingSet64 / (1024 * 1024),
+                threadCount = process.Threads.Count,
+                runtimeVersion = Environment.Version.ToString()
+            }
+        };
+    }
 }

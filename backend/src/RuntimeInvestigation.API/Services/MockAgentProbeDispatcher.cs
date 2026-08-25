@@ -28,4 +28,22 @@ public sealed class MockAgentProbeDispatcher : IProbeDispatcher
         _store.AddAudit("ProbeRemovalDispatched", probeId, $"Probe '{probeId}' removal dispatched. Reason: {reason}");
         return Task.FromResult(new ProbeRemovalCommand(probeId, reason, AgentProtocol.Version));
     }
+
+    public Task<AgentRegistrationAck> RegisterAgentAsync(AgentRegistrationCommand command, CancellationToken cancellationToken = default)
+    {
+        _store.AddAudit("AgentRegistered", command.AgentId, $"Agent '{command.AgentId}' registered with protocol {command.ProtocolVersion}.");
+        return Task.FromResult(new AgentRegistrationAck(command.AgentId, AgentProtocol.Version, command.Capabilities, true));
+    }
+
+    public Task<ProbeActivationAck> DeployProbeAsync(ProbeActivationCommand command, CancellationToken cancellationToken = default)
+    {
+        _store.AddAudit("ProbeDispatched", command.ProbeId, $"Probe '{command.ProbeId}' on {command.TargetClass}.{command.TargetMethod} dispatched to agent.");
+        return Task.FromResult(new ProbeActivationAck(command.ProbeId, "Active", AgentProtocol.Version, true));
+    }
+
+    public Task<ProbeRemovalAck> RemoveProbeAsync(ProbeRemovalCommand command, CancellationToken cancellationToken = default)
+    {
+        _store.AddAudit("ProbeRemovalDispatched", command.ProbeId, $"Probe '{command.ProbeId}' removal dispatched. Reason: {command.Reason}");
+        return Task.FromResult(new ProbeRemovalAck(command.ProbeId, "Removed", AgentProtocol.Version, true));
+    }
 }

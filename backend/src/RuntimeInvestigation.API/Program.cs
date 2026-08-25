@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using RuntimeInvestigation.API.Models;
 using RuntimeInvestigation.Application.Features.Applications;
+using RuntimeInvestigation.Application.Features.Investigations;
 using RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 using RuntimeInvestigation.API.Services;
 
@@ -16,6 +17,7 @@ builder.Services.AddHealthChecks();
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoDbSettings>>().Value);
 builder.Services.AddSingleton<IApplicationRepository, MongoApplicationRepository>();
+builder.Services.AddSingleton<IInvestigationRepository, MongoInvestigationRepository>();
 builder.Services.AddSingleton<DemoWorkflowStore>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
@@ -36,16 +38,17 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
+        ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings.Issuer,
         ValidateAudience = true,
         ValidAudience = jwtSettings.Audience,
-        ValidateIssuerSigningKey = true,
         IssuerSigningKey = signingKey,
         ValidateLifetime = true
     };
 });
 
 builder.Services.AddScoped<ApplicationService>();
+builder.Services.AddScoped<InvestigationService>();
 builder.Services.AddSingleton<IProbeDispatcher, MockAgentProbeDispatcher>();
 
 var app = builder.Build();
@@ -66,6 +69,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health/live");
 
 app.Run();
 

@@ -91,4 +91,8 @@ export class DemoWorkflowService {
   getAudit() {
     return this.http.get<AuditEntry[]>(`${this.baseUrl}/audit`);
   }
+
+  resetDemo() {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/reset`, {});
+  }
 }
