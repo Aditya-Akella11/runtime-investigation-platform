@@ -4,6 +4,22 @@ using RuntimeInvestigation.RuntimeAgent.Policy;
 using RuntimeInvestigation.RuntimeAgent.Safety;
 using RuntimeInvestigation.Shared.Contracts;
 
+// Parse command line arguments
+string? targetPid = null;
+for (int i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--pid" && i + 1 < args.Length)
+    {
+        targetPid = args[i + 1];
+        break;
+    }
+}
+
+if (!string.IsNullOrEmpty(targetPid))
+{
+    Console.WriteLine($"Agent started, PID: {targetPid}");
+}
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<AgentCapabilityCatalog>();
 builder.Services.AddSingleton<RuntimeAgentDiagnostics>();
