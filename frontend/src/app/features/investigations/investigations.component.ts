@@ -40,6 +40,7 @@ import { DemoWorkflowService, Investigation } from '../../core/demo-workflow.ser
           <span class="app-env">{{ investigation.application }} · {{ investigation.environment }}</span>
           <p class="desc">{{ investigation.description || 'No description provided.' }}</p>
           <div class="card-actions">
+            <button type="button" class="btn-outline" (click)="viewDetails(investigation.id)">View Details &rarr;</button>
             <button type="button" class="btn-primary" (click)="selectAndNavigate(investigation.id)">Launch Probe &rarr;</button>
           </div>
         </article>
@@ -112,6 +113,10 @@ export class InvestigationsComponent implements OnInit {
       this.workflow.setSelectedInvestigationId(created.id);
       this.refresh();
     });
+  }
+
+  viewDetails(id: string): void {
+    this.router.navigate(['/investigations', id]);
   }
 
   selectAndNavigate(id: string): void {

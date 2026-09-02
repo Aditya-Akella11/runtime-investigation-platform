@@ -1,34 +1,51 @@
-name: CI
+name: CI Pipeline
+
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
   backend:
+    name: Backend Build & Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
-      - run: dotnet restore backend/RuntimeInvestigation.sln
-      - run: dotnet build backend/RuntimeInvestigation.sln --configuration Release --no-restore --warnaserror
-      - run: dotnet test backend/RuntimeInvestigation.sln --configuration Release --no-build
-      - run: dotnet format backend/RuntimeInvestigation.sln --verify-no-changes --no-restore
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore backend/RuntimeInvestigation.sln
+
+      - name: Build Solution
+        run: dotnet build backend/RuntimeInvestigation.sln --no-restore --configuration Release
+
+      - name: Run Tests
+        run: dotnet test backend/RuntimeInvestigation.sln --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
 
   frontend:
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '20'
+          cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: npm run build

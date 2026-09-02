@@ -26,6 +26,10 @@ builder.Services.AddSingleton<RuntimeAgentDiagnostics>();
 builder.Services.AddSingleton<LocalProbeSafetyPolicy>();
 builder.Services.AddSingleton<ProbeRedactionPolicy>();
 builder.Services.AddSingleton<RuntimeInstrumentationSample>();
+builder.Services.AddSingleton<ProbeActivator>();
+builder.Services.AddSingleton<MockObservabilitySink>();
+builder.Services.AddSingleton<IObservabilitySink>(sp => sp.GetRequiredService<MockObservabilitySink>());
+builder.Services.AddSingleton<ObservabilityProvider>();
 
 var app = builder.Build();
 
@@ -49,20 +53,53 @@ app.MapPost("/register", (AgentRegistrationCommand command, AgentCapabilityCatal
     return Results.Ok(new AgentRegistrationAck(command.AgentId, AgentProtocol.Version, approved, true));
 });
 
-app.MapPost("/probes/activate", (ProbeActivationCommand command, LocalProbeSafetyPolicy safetyPolicy) =>
+app.MapPost("/probes/activate", (ProbeActivationCommand command, ProbeActivator activator) =>
 {
-    var (isAllowed, reason) = safetyPolicy.ValidateActivation(command);
-    if (!isAllowed)
+    var result = activator.Activate(command);
+    if (!result.Success)
     {
-        return Results.BadRequest(new ProbeActivationAck(command.ProbeId, "Rejected", AgentProtocol.Version, false, reason));
+        return Results.BadRequest(new ProbeActivationAck(command.ProbeId, "Rejected", AgentProtocol.Version, false, result.FailureReason));
     }
 
     return Results.Ok(new ProbeActivationAck(command.ProbeId, "Active", AgentProtocol.Version, true));
 });
 
-app.MapPost("/probes/{probeId}/remove", (string probeId, ProbeRemovalCommand command) =>
+app.MapPost("/probes/{probeId}/deactivate", (string probeId, ProbeRemovalCommand? command, ProbeActivator activator) =>
 {
+    var reason = command?.Reason ?? "Operator deactivated";
+    var result = activator.Deactivate(probeId, reason);
+    if (!result.Success)
+    {
+        return Results.BadRequest(new ProbeRemovalAck(probeId, "Failed", AgentProtocol.Version, false));
+    }
+    return Results.Ok(new ProbeRemovalAck(probeId, "Deactivated", AgentProtocol.Version, true));
+});
+
+app.MapPost("/probes/{probeId}/remove", (string probeId, ProbeRemovalCommand command, ProbeActivator activator) =>
+{
+    activator.Deactivate(probeId, command.Reason);
     return Results.Ok(new ProbeRemovalAck(probeId, "Removed", AgentProtocol.Version, true));
+});
+
+app.MapGet("/probes/status", (ProbeActivator activator) =>
+{
+    var activeIds = activator.GetActiveProbeIds();
+    return Results.Ok(new
+    {
+        protocol = AgentProtocol.Version,
+        activeProbeCount = activeIds.Count,
+        activeProbes = activeIds
+    });
+});
+
+app.MapPost("/shutdown", (IHostApplicationLifetime lifetime) =>
+{
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(500);
+        lifetime.StopApplication();
+    });
+    return Results.Ok(new { message = "Agent shutdown initiated.", protocol = AgentProtocol.Version });
 });
 
 app.MapGet("/diagnostics", (RuntimeAgentDiagnostics diagnostics) => Results.Ok(diagnostics.Snapshot()));

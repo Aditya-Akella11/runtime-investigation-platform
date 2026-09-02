@@ -23,6 +23,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/investigations/investigations.component').then(m => m.InvestigationsComponent)
       },
       {
+        path: 'investigations/:id',
+        loadComponent: () => import('./features/investigations/investigation-detail.component').then(m => m.InvestigationDetailComponent)
+      },
+      {
         path: 'runtime-probes',
         loadComponent: () => import('./features/runtime-probes/runtime-probes.component').then(m => m.RuntimeProbesComponent)
       },

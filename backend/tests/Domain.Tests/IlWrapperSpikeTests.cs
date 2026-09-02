@@ -71,7 +71,7 @@ public class IlWrapperSpikeTests
 
         var targetMethod = typeof(IlWrapperSpikeTests).GetMethod(
             nameof(VoidHelper),
-            BindingFlags.Public | BindingFlags.Static)!;
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!;
 
         var wrapper = IlWrapperSpike.CreateWrapper(targetMethod);
         var ex = Record.Exception(() => wrapper.DynamicInvoke("test-input"));

@@ -31,6 +31,18 @@ public static class ProbeMethodFinder
                 {
                     break;
                 }
+
+                // Fallback: search exported types by FullName or Name
+                foreach (var t in assembly.GetTypes())
+                {
+                    if (string.Equals(t.FullName, className, StringComparison.Ordinal) ||
+                        string.Equals(t.Name, className, StringComparison.Ordinal))
+                    {
+                        type = t;
+                        break;
+                    }
+                }
+                if (type != null) break;
             }
             catch
             {

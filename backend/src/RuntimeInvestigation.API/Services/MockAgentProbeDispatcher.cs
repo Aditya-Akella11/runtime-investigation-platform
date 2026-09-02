@@ -1,8 +1,9 @@
+using RuntimeInvestigation.Application.Features.Probes;
 using RuntimeInvestigation.Shared.Contracts;
 
 namespace RuntimeInvestigation.API.Services;
 
-public sealed class MockAgentProbeDispatcher : IProbeDispatcher
+public sealed class MockAgentProbeDispatcher : IProbeDispatcher, IAgentDispatcher
 {
     private readonly DemoWorkflowStore _store;
 
@@ -46,4 +47,10 @@ public sealed class MockAgentProbeDispatcher : IProbeDispatcher
         _store.AddAudit("ProbeRemovalDispatched", command.ProbeId, $"Probe '{command.ProbeId}' removal dispatched. Reason: {command.Reason}");
         return Task.FromResult(new ProbeRemovalAck(command.ProbeId, "Removed", AgentProtocol.Version, true));
     }
+
+    public Task<ProbeActivationAck> DispatchActivationAsync(ProbeActivationCommand command, CancellationToken cancellationToken = default) =>
+        DeployProbeAsync(command, cancellationToken);
+
+    public Task<ProbeRemovalAck> DispatchRemovalAsync(ProbeRemovalCommand command, CancellationToken cancellationToken = default) =>
+        RemoveProbeAsync(command, cancellationToken);
 }

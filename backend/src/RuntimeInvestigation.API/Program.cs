@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using RuntimeInvestigation.API.Models;
 using RuntimeInvestigation.Application.Features.Applications;
 using RuntimeInvestigation.Application.Features.Investigations;
+using RuntimeInvestigation.Application.Features.Probes;
 using RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 using RuntimeInvestigation.API.Services;
 
@@ -18,6 +19,8 @@ builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("Mo
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoDbSettings>>().Value);
 builder.Services.AddSingleton<IApplicationRepository, MongoApplicationRepository>();
 builder.Services.AddSingleton<IInvestigationRepository, MongoInvestigationRepository>();
+builder.Services.AddSingleton<IProbeRepository, MongoProbeRepository>();
+builder.Services.AddSingleton<IProbeResultRepository, MongoProbeResultRepository>();
 builder.Services.AddSingleton<DemoWorkflowStore>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
@@ -49,7 +52,11 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<ApplicationService>();
 builder.Services.AddScoped<InvestigationService>();
-builder.Services.AddSingleton<IProbeDispatcher, MockAgentProbeDispatcher>();
+builder.Services.AddScoped<ProbeService>();
+builder.Services.AddSingleton<MockAgentProbeDispatcher>();
+builder.Services.AddSingleton<IProbeDispatcher>(sp => sp.GetRequiredService<MockAgentProbeDispatcher>());
+builder.Services.AddSingleton<RuntimeInvestigation.Application.Features.Probes.IAgentDispatcher>(sp => sp.GetRequiredService<MockAgentProbeDispatcher>());
+builder.Services.AddHostedService<ProbeExpirationService>();
 
 var app = builder.Build();
 

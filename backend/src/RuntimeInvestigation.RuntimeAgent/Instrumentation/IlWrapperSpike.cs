@@ -6,19 +6,20 @@ namespace RuntimeInvestigation.RuntimeAgent.Instrumentation;
 
 public static class IlWrapperSpike
 {
+    [ThreadStatic]
     public static Action<string, object?[]>? OnMethodEntry;
+
+    [ThreadStatic]
     public static Action<string, object?>? OnMethodExit;
 
     public static void LogEntry(string methodName, object?[] args)
     {
         OnMethodEntry?.Invoke(methodName, args);
-        Console.WriteLine($"[IL Wrapper Spike] Entering {methodName} with {args.Length} arguments.");
     }
 
     public static void LogExit(string methodName, object? result)
     {
         OnMethodExit?.Invoke(methodName, result);
-        Console.WriteLine($"[IL Wrapper Spike] Exiting {methodName} with result: {result ?? "void"}");
     }
 
     public static Delegate CreateWrapper(MethodInfo targetMethod)
@@ -100,11 +101,18 @@ public static class IlWrapperSpike
 
         il.Emit(OpCodes.Ret);
 
-        // Generate Delegate type dynamically using Expression
-        var delegateTypes = new Type[parameterTypes.Length + 1];
-        Array.Copy(parameterTypes, delegateTypes, parameterTypes.Length);
-        delegateTypes[^1] = returnType;
-        var delegateType = System.Linq.Expressions.Expression.GetDelegateType(delegateTypes);
+        Type delegateType;
+        if (returnType == typeof(void))
+        {
+            delegateType = System.Linq.Expressions.Expression.GetActionType(parameterTypes);
+        }
+        else
+        {
+            var delegateTypes = new Type[parameterTypes.Length + 1];
+            Array.Copy(parameterTypes, delegateTypes, parameterTypes.Length);
+            delegateTypes[^1] = returnType;
+            delegateType = System.Linq.Expressions.Expression.GetFuncType(delegateTypes);
+        }
 
         return dynamicMethod.CreateDelegate(delegateType);
     }
