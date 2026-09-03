@@ -6,11 +6,20 @@ namespace RuntimeInvestigation.RuntimeAgent.Instrumentation;
 
 public static class IlWrapperSpike
 {
-    [ThreadStatic]
-    public static Action<string, object?[]>? OnMethodEntry;
+    private static readonly System.Threading.AsyncLocal<Action<string, object?[]>?> _onMethodEntry = new();
+    private static readonly System.Threading.AsyncLocal<Action<string, object?>?> _onMethodExit = new();
 
-    [ThreadStatic]
-    public static Action<string, object?>? OnMethodExit;
+    public static Action<string, object?[]>? OnMethodEntry
+    {
+        get => _onMethodEntry.Value;
+        set => _onMethodEntry.Value = value;
+    }
+
+    public static Action<string, object?>? OnMethodExit
+    {
+        get => _onMethodExit.Value;
+        set => _onMethodExit.Value = value;
+    }
 
     public static void LogEntry(string methodName, object?[] args)
     {
