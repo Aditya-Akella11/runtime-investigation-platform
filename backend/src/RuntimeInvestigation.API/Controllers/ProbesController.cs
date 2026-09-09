@@ -51,7 +51,8 @@ public sealed class ProbesController : ControllerBase
             request.TargetClass,
             request.TargetMethod,
             request.Expression,
-            request.DurationMinutes <= 0 ? 30 : request.DurationMinutes);
+            request.DurationMinutes <= 0 ? 30 : request.DurationMinutes,
+            request.Condition);
 
         var result = await _probeService.AddProbeAsync(command, cancellationToken);
         if (!result.IsSuccess)
@@ -112,6 +113,46 @@ public sealed class ProbesController : ControllerBase
         await _resultRepository.AddRangeAsync(results, cancellationToken);
         return Ok(new { count = results.Length });
     }
+    [HttpGet("probes/{id}/snapshot")]
+    public async Task<ActionResult<SnapshotData>> GetSnapshot(string id, CancellationToken cancellationToken)
+    {
+        var probeResult = await _probeService.GetByIdAsync(id, cancellationToken);
+        if (!probeResult.IsSuccess)
+        {
+            return NotFound(new { error = probeResult.Error?.Message });
+        }
+
+        var results = await _probeService.GetResultsAsync(id, 1, cancellationToken);
+        var latest = results.FirstOrDefault();
+        var snapshot = new SnapshotData(
+            id,
+            latest?.CapturedAtUtc ?? DateTime.UtcNow,
+            latest?.Arguments != null
+                ? latest.Arguments.ToDictionary(k => k.Key, v => (string?)v.Value)
+                : new Dictionary<string, string?>());
+
+        return Ok(snapshot);
+    }
+
+    [HttpGet("probes/{id}/metrics")]
+    public async Task<ActionResult<MetricData>> GetMetrics(string id, CancellationToken cancellationToken)
+    {
+        var probeResult = await _probeService.GetByIdAsync(id, cancellationToken);
+        if (!probeResult.IsSuccess)
+        {
+            return NotFound(new { error = probeResult.Error?.Message });
+        }
+
+        var results = await _probeService.GetResultsAsync(id, 1000, cancellationToken);
+        long callCount = results.Count;
+        long totalDurationMs = (long)results.Sum(r => r.DurationMs);
+        long exceptionCount = results.Count(r => r.ReturnValue != null && r.ReturnValue.StartsWith("Exception", StringComparison.OrdinalIgnoreCase));
+        double avgDurationMs = callCount == 0 ? 0 : (double)totalDurationMs / callCount;
+        var lastUpdated = results.Count > 0 ? results.Max(r => r.CapturedAtUtc) : DateTime.UtcNow;
+
+        var metrics = new MetricData(id, callCount, totalDurationMs, exceptionCount, avgDurationMs, lastUpdated);
+        return Ok(metrics);
+    }
 }
 
 public sealed record AddProbeRequest(
@@ -119,4 +160,5 @@ public sealed record AddProbeRequest(
     string TargetClass,
     string TargetMethod,
     string? Expression = null,
-    int DurationMinutes = 30);
+    int DurationMinutes = 30,
+    string? Condition = null);

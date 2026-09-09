@@ -54,7 +54,7 @@ public sealed class ProbeService
 
         try
         {
-            var probe = new RuntimeProbe(command.InvestigationId, parsedType, target, command.Expression, expiresAt);
+            var probe = new RuntimeProbe(command.InvestigationId, parsedType, target, command.Expression, expiresAt, command.Condition);
             await _probeRepository.CreateAsync(probe, cancellationToken);
             return Result<ProbeDto>.Success(ProbeDto.FromEntity(probe));
         }

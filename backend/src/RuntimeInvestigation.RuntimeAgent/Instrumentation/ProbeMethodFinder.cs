@@ -52,6 +52,22 @@ public static class ProbeMethodFinder
 
         if (type == null)
         {
+            try { type = Type.GetType(className); } catch { }
+        }
+
+        if (type == null)
+        {
+            try
+            {
+                var rootNs = className.Split('.')[0];
+                var asm = Assembly.Load(new AssemblyName(rootNs));
+                type = asm?.GetType(className);
+            }
+            catch { }
+        }
+
+        if (type == null)
+        {
             return null;
         }
 

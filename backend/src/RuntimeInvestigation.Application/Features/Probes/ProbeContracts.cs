@@ -10,7 +10,8 @@ public sealed record AddProbeCommand(
     string TargetClass,
     string TargetMethod,
     string? Expression = null,
-    int DurationMinutes = 30);
+    int DurationMinutes = 30,
+    string? Condition = null);
 
 public sealed record ActivateProbeCommand(string ProbeId);
 
@@ -24,7 +25,8 @@ public sealed record ProbeDto(
     string? Expression,
     string Status,
     DateTime CreatedAt,
-    DateTime ExpiresAt)
+    DateTime ExpiresAt,
+    string? Condition = null)
 {
     public static ProbeDto FromEntity(RuntimeProbe entity) =>
         new(
@@ -35,8 +37,22 @@ public sealed record ProbeDto(
             entity.Expression,
             entity.Status.ToString(),
             entity.CreatedAt,
-            entity.ExpiresAt);
+            entity.ExpiresAt,
+            entity.Condition);
 }
+
+public sealed record SnapshotData(
+    string ProbeId,
+    DateTime CapturedAt,
+    IReadOnlyDictionary<string, string?> Variables);
+
+public sealed record MetricData(
+    string ProbeId,
+    long CallCount,
+    long TotalDurationMs,
+    long ExceptionCount,
+    double AverageDurationMs,
+    DateTime LastUpdated);
 
 public sealed record ProbeResultDto(
     string Id,
