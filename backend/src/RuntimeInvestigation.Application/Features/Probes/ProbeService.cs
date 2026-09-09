@@ -20,15 +20,18 @@ public sealed class ProbeService
     private readonly IProbeRepository _probeRepository;
     private readonly IProbeResultRepository _resultRepository;
     private readonly IAgentDispatcher _dispatcher;
+    private readonly RuntimeInvestigation.Application.Common.Interfaces.ITenantContext? _tenantContext;
 
     public ProbeService(
         IProbeRepository probeRepository,
         IProbeResultRepository resultRepository,
-        IAgentDispatcher dispatcher)
+        IAgentDispatcher dispatcher,
+        RuntimeInvestigation.Application.Common.Interfaces.ITenantContext? tenantContext = null)
     {
         _probeRepository = probeRepository;
         _resultRepository = resultRepository;
         _dispatcher = dispatcher;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Result<ProbeDto>> AddProbeAsync(AddProbeCommand command, CancellationToken cancellationToken = default)
@@ -54,7 +57,8 @@ public sealed class ProbeService
 
         try
         {
-            var probe = new RuntimeProbe(command.InvestigationId, parsedType, target, command.Expression, expiresAt, command.Condition);
+            var tenantId = _tenantContext?.TenantId ?? "default";
+            var probe = new RuntimeProbe(command.InvestigationId, parsedType, target, command.Expression, expiresAt, command.Condition, tenantId);
             await _probeRepository.CreateAsync(probe, cancellationToken);
             return Result<ProbeDto>.Success(ProbeDto.FromEntity(probe));
         }
@@ -67,7 +71,7 @@ public sealed class ProbeService
     public async Task<Result<ProbeDto>> ActivateProbeAsync(string probeId, string applicationName = "DefaultApp", CancellationToken cancellationToken = default)
     {
         var probe = await _probeRepository.GetByIdAsync(probeId, cancellationToken);
-        if (probe is null)
+        if (probe is null || (_tenantContext != null && !string.Equals(probe.TenantId, _tenantContext.TenantId, StringComparison.OrdinalIgnoreCase)))
         {
             return Result<ProbeDto>.Failure(new Error("NotFound", $"Probe '{probeId}' not found."));
         }
@@ -110,7 +114,7 @@ public sealed class ProbeService
     public async Task<Result<ProbeDto>> DeactivateProbeAsync(string probeId, string reason = "Operator deactivated", CancellationToken cancellationToken = default)
     {
         var probe = await _probeRepository.GetByIdAsync(probeId, cancellationToken);
-        if (probe is null)
+        if (probe is null || (_tenantContext != null && !string.Equals(probe.TenantId, _tenantContext.TenantId, StringComparison.OrdinalIgnoreCase)))
         {
             return Result<ProbeDto>.Failure(new Error("NotFound", $"Probe '{probeId}' not found."));
         }
@@ -139,14 +143,20 @@ public sealed class ProbeService
     public async Task<Result<ProbeDto>> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         var probe = await _probeRepository.GetByIdAsync(id, cancellationToken);
-        return probe is null
-            ? Result<ProbeDto>.Failure(new Error("NotFound", $"Probe '{id}' not found."))
-            : Result<ProbeDto>.Success(ProbeDto.FromEntity(probe));
+        if (probe is null || (_tenantContext != null && !string.Equals(probe.TenantId, _tenantContext.TenantId, StringComparison.OrdinalIgnoreCase)))
+        {
+            return Result<ProbeDto>.Failure(new Error("NotFound", $"Probe '{id}' not found."));
+        }
+        return Result<ProbeDto>.Success(ProbeDto.FromEntity(probe));
     }
 
     public async Task<IReadOnlyList<ProbeDto>> GetByInvestigationIdAsync(string investigationId, CancellationToken cancellationToken = default)
     {
         var probes = await _probeRepository.GetByInvestigationIdAsync(investigationId, cancellationToken);
+        if (_tenantContext != null)
+        {
+            probes = probes.Where(p => string.Equals(p.TenantId, _tenantContext.TenantId, StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
         return probes.Select(ProbeDto.FromEntity).ToArray();
     }
 

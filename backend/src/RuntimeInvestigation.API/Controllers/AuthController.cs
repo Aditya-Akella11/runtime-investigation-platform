@@ -32,21 +32,33 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        var token = CreateToken(request.Username);
+        var tenantId = !string.IsNullOrWhiteSpace(request.TenantId) ? request.TenantId : "default";
+        var role = !string.IsNullOrWhiteSpace(request.Role)
+            ? request.Role
+            : (request.Username.Equals("viewer", StringComparison.OrdinalIgnoreCase)
+                ? "Viewer"
+                : (request.Username.Equals("investigator", StringComparison.OrdinalIgnoreCase)
+                    ? "Investigator"
+                    : "Admin"));
+
+        var token = CreateToken(request.Username, tenantId, role);
         return Ok(new TokenResponse(token));
     }
 
     private bool ValidateUser(string username, string password)
     {
-        return username == "admin" && password == "password";
+        return password == "password" && (username == "admin" || username == "investigator" || username == "viewer" || !string.IsNullOrWhiteSpace(username));
     }
 
-    private string CreateToken(string username)
+    private string CreateToken(string username, string tenantId, string role)
     {
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("tenant_id", tenantId),
+            new Claim(ClaimTypes.Role, role),
+            new Claim("role", role)
         };
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SigningKey));
@@ -63,5 +75,5 @@ public class AuthController : ControllerBase
     }
 }
 
-public sealed record TokenRequest(string Username, string Password);
+public sealed record TokenRequest(string Username, string Password, string? TenantId = null, string? Role = null);
 public sealed record TokenResponse(string AccessToken);

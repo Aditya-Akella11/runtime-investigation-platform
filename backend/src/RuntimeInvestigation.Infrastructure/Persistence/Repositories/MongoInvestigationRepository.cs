@@ -10,6 +10,7 @@ namespace RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 public sealed class MongoInvestigationRepository : IInvestigationRepository
 {
     private readonly IMongoCollection<Investigation> _collection;
+    private readonly RuntimeInvestigation.Application.Common.Interfaces.ITenantContext? _tenantContext;
 
     static MongoInvestigationRepository()
     {
@@ -25,29 +26,41 @@ public sealed class MongoInvestigationRepository : IInvestigationRepository
         }
     }
 
-    public MongoInvestigationRepository(MongoDbSettings settings)
+    public MongoInvestigationRepository(MongoDbSettings settings, RuntimeInvestigation.Application.Common.Interfaces.ITenantContext? tenantContext = null)
     {
         var client = new MongoClient(settings.ConnectionString);
         var database = client.GetDatabase(settings.DatabaseName);
         _collection = database.GetCollection<Investigation>(settings.InvestigationsCollectionName);
+        _tenantContext = tenantContext;
     }
 
     public async Task<Investigation?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Investigation>.Filter.Eq(i => i.Id, id);
+        var filter = _tenantContext != null
+            ? Builders<Investigation>.Filter.And(
+                Builders<Investigation>.Filter.Eq(i => i.Id, id),
+                Builders<Investigation>.Filter.Eq(i => i.TenantId, _tenantContext.TenantId))
+            : Builders<Investigation>.Filter.Eq(i => i.Id, id);
         return await _collection.Find(filter).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<Investigation>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _collection.Find(Builders<Investigation>.Filter.Empty)
+        var filter = _tenantContext != null
+            ? Builders<Investigation>.Filter.Eq(i => i.TenantId, _tenantContext.TenantId)
+            : Builders<Investigation>.Filter.Empty;
+        return await _collection.Find(filter)
             .SortByDescending(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<Investigation>> GetByApplicationIdAsync(string applicationId, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Investigation>.Filter.Eq(i => i.ApplicationId, applicationId);
+        var filter = _tenantContext != null
+            ? Builders<Investigation>.Filter.And(
+                Builders<Investigation>.Filter.Eq(i => i.ApplicationId, applicationId),
+                Builders<Investigation>.Filter.Eq(i => i.TenantId, _tenantContext.TenantId))
+            : Builders<Investigation>.Filter.Eq(i => i.ApplicationId, applicationId);
         return await _collection.Find(filter)
             .SortByDescending(i => i.CreatedAt)
             .ToListAsync(cancellationToken);

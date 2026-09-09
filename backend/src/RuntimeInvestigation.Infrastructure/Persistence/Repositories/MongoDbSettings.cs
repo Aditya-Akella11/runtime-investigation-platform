@@ -9,4 +9,5 @@ public sealed class MongoDbSettings
     public string ProbesCollectionName { get; set; } = "probes";
     public string EvidenceCollectionName { get; set; } = "evidence";
     public string AuditCollectionName { get; set; } = "audit";
+    public string UsersCollectionName { get; set; } = "users";
 }

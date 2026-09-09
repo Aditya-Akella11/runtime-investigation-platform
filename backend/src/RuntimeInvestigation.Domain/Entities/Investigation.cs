@@ -6,7 +6,7 @@ public class Investigation
 {
     protected Investigation() { }
 
-    public Investigation(string applicationId, string title, string? description = null)
+    public Investigation(string applicationId, string title, string? description = null, string tenantId = "default", string createdBy = "system")
     {
         if (string.IsNullOrWhiteSpace(applicationId)) throw new ArgumentException("Application is required.", nameof(applicationId));
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title is required.", nameof(title));
@@ -14,11 +14,15 @@ public class Investigation
         ApplicationId = applicationId.Trim();
         Title = title.Trim();
         Description = description?.Trim();
+        TenantId = string.IsNullOrWhiteSpace(tenantId) ? "default" : tenantId.Trim();
+        CreatedBy = string.IsNullOrWhiteSpace(createdBy) ? "system" : createdBy.Trim();
         Status = InvestigationStatus.Open;
         CreatedAt = UpdatedAt = DateTime.UtcNow;
     }
 
     public string Id { get; private set; } = string.Empty;
+    public string TenantId { get; set; } = "default";
+    public string CreatedBy { get; set; } = "system";
     public string ApplicationId { get; private set; } = string.Empty;
     public string Title { get; private set; } = string.Empty;
     public string? Description { get; private set; }

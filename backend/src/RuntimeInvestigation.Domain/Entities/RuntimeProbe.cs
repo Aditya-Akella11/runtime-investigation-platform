@@ -7,7 +7,7 @@ public class RuntimeProbe
 {
     protected RuntimeProbe() { }
 
-    public RuntimeProbe(string investigationId, ProbeType type, string target, string? expression, DateTime expiresAt, string? condition = null)
+    public RuntimeProbe(string investigationId, ProbeType type, string target, string? expression, DateTime expiresAt, string? condition = null, string tenantId = "default")
     {
         if (string.IsNullOrWhiteSpace(investigationId)) throw new ArgumentException("Investigation is required.", nameof(investigationId));
         if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Target is required.", nameof(target));
@@ -18,12 +18,14 @@ public class RuntimeProbe
         Target = target.Trim();
         Expression = expression?.Trim();
         Condition = condition?.Trim();
+        TenantId = string.IsNullOrWhiteSpace(tenantId) ? "default" : tenantId.Trim();
         Status = ProbeStatus.Pending;
         CreatedAt = DateTime.UtcNow;
         ExpiresAt = expiresAt.ToUniversalTime();
     }
 
     public string Id { get; private set; } = string.Empty;
+    public string TenantId { get; set; } = "default";
     public string InvestigationId { get; private set; } = string.Empty;
     public ProbeType Type { get; private set; }
     public string Target { get; private set; } = string.Empty;

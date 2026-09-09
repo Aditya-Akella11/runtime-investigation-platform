@@ -9,7 +9,9 @@ public sealed record InvestigationDto(
     string? Description,
     string Status,
     DateTime CreatedAt,
-    DateTime UpdatedAt)
+    DateTime UpdatedAt,
+    string TenantId = "default",
+    string CreatedBy = "system")
 {
     public static InvestigationDto FromEntity(Investigation entity) =>
         new(
@@ -19,13 +21,17 @@ public sealed record InvestigationDto(
             entity.Description,
             entity.Status.ToString(),
             entity.CreatedAt,
-            entity.UpdatedAt);
+            entity.UpdatedAt,
+            entity.TenantId,
+            entity.CreatedBy);
 }
 
 public sealed record CreateInvestigationCommand(
     string ApplicationId,
     string Title,
-    string? Description = null);
+    string? Description = null,
+    string? TenantId = null,
+    string? CreatedBy = null);
 
 public sealed record UpdateInvestigationCommand(
     string Title,

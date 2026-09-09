@@ -5,6 +5,7 @@ using RuntimeInvestigation.API.Models;
 using RuntimeInvestigation.Application.Features.Applications;
 using RuntimeInvestigation.Application.Features.Investigations;
 using RuntimeInvestigation.Application.Features.Probes;
+using RuntimeInvestigation.Application.Features.Users;
 using RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 using RuntimeInvestigation.API.Services;
 
@@ -17,10 +18,11 @@ builder.Services.AddHealthChecks();
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.AddSingleton(resolver => resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<MongoDbSettings>>().Value);
-builder.Services.AddSingleton<IApplicationRepository, MongoApplicationRepository>();
-builder.Services.AddSingleton<IInvestigationRepository, MongoInvestigationRepository>();
-builder.Services.AddSingleton<IProbeRepository, MongoProbeRepository>();
-builder.Services.AddSingleton<IProbeResultRepository, MongoProbeResultRepository>();
+builder.Services.AddScoped<IApplicationRepository, MongoApplicationRepository>();
+builder.Services.AddScoped<IInvestigationRepository, MongoInvestigationRepository>();
+builder.Services.AddScoped<IProbeRepository, MongoProbeRepository>();
+builder.Services.AddScoped<IProbeResultRepository, MongoProbeResultRepository>();
+builder.Services.AddScoped<IUserRepository, MongoUserRepository>();
 builder.Services.AddSingleton<DemoWorkflowStore>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
@@ -50,9 +52,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddScoped<RuntimeInvestigation.Application.Common.Interfaces.ITenantContext, RuntimeInvestigation.Application.Common.Interfaces.TenantContext>();
 builder.Services.AddScoped<ApplicationService>();
 builder.Services.AddScoped<InvestigationService>();
 builder.Services.AddScoped<ProbeService>();
+builder.Services.AddScoped<RuntimeInvestigation.Application.Features.Users.UserService>();
 builder.Services.AddSingleton<MockAgentProbeDispatcher>();
 builder.Services.AddSingleton<IProbeDispatcher>(sp => sp.GetRequiredService<MockAgentProbeDispatcher>());
 builder.Services.AddSingleton<RuntimeInvestigation.Application.Features.Probes.IAgentDispatcher>(sp => sp.GetRequiredService<MockAgentProbeDispatcher>());
@@ -73,6 +77,7 @@ if (!disableHttpsRedirection)
 }
 
 app.UseAuthentication();
+app.UseMiddleware<RuntimeInvestigation.API.Middleware.TenantContextMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health/ready");

@@ -12,17 +12,24 @@ namespace RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 public sealed class InMemoryProbeRepository : IProbeRepository
 {
     private readonly ConcurrentDictionary<string, RuntimeProbe> _probes = new();
+    public RuntimeInvestigation.Application.Common.Interfaces.ITenantContext? TenantContext { get; set; }
+
+    public InMemoryProbeRepository() { }
 
     public Task<RuntimeProbe?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         _probes.TryGetValue(id, out var probe);
+        if (probe != null && TenantContext != null && !string.Equals(probe.TenantId, TenantContext.TenantId, StringComparison.OrdinalIgnoreCase))
+        {
+            probe = null;
+        }
         return Task.FromResult(probe);
     }
 
     public Task<IReadOnlyList<RuntimeProbe>> GetByInvestigationIdAsync(string investigationId, CancellationToken cancellationToken = default)
     {
         var list = _probes.Values
-            .Where(p => p.InvestigationId == investigationId)
+            .Where(p => p.InvestigationId == investigationId && (TenantContext == null || string.Equals(p.TenantId, TenantContext.TenantId, StringComparison.OrdinalIgnoreCase)))
             .OrderByDescending(p => p.CreatedAt)
             .ToArray();
         return Task.FromResult<IReadOnlyList<RuntimeProbe>>(list);
@@ -30,7 +37,10 @@ public sealed class InMemoryProbeRepository : IProbeRepository
 
     public Task<IReadOnlyList<RuntimeProbe>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var list = _probes.Values.OrderByDescending(p => p.CreatedAt).ToArray();
+        var list = _probes.Values
+            .Where(p => TenantContext == null || string.Equals(p.TenantId, TenantContext.TenantId, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(p => p.CreatedAt)
+            .ToArray();
         return Task.FromResult<IReadOnlyList<RuntimeProbe>>(list);
     }
 

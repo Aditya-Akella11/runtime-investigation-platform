@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\RuntimeInvestigation.Domain\RuntimeInvestigation.Domain.csproj" />
     <ProjectReference Include="..\..\src\RuntimeInvestigation.Shared\RuntimeInvestigation.Shared.csproj" />
+    <ProjectReference Include="..\..\src\RuntimeInvestigation.Application\RuntimeInvestigation.Application.csproj" />
+    <ProjectReference Include="..\..\src\RuntimeInvestigation.Infrastructure\RuntimeInvestigation.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\RuntimeInvestigation.RuntimeAgent\RuntimeInvestigation.RuntimeAgent.csproj" />
     <ProjectReference Include="..\..\..\demo\SimpleApp\SimpleApp.csproj" />
   </ItemGroup>

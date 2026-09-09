@@ -25,6 +25,7 @@ public sealed class ProbesController : ControllerBase
     }
 
     [HttpGet("investigations/{investigationId}/probes")]
+    [Authorize]
     public async Task<ActionResult<IReadOnlyList<ProbeDto>>> GetByInvestigation(string investigationId, CancellationToken cancellationToken)
     {
         var probes = await _probeService.GetByInvestigationIdAsync(investigationId, cancellationToken);
@@ -32,6 +33,7 @@ public sealed class ProbesController : ControllerBase
     }
 
     [HttpGet("probes/{id}")]
+    [Authorize]
     public async Task<ActionResult<ProbeDto>> GetById(string id, CancellationToken cancellationToken)
     {
         var result = await _probeService.GetByIdAsync(id, cancellationToken);
@@ -43,6 +45,7 @@ public sealed class ProbesController : ControllerBase
     }
 
     [HttpPost("investigations/{investigationId}/probes")]
+    [Authorize(Roles = "Admin,Investigator")]
     public async Task<ActionResult<ProbeDto>> AddProbe(string investigationId, [FromBody] AddProbeRequest request, CancellationToken cancellationToken)
     {
         var command = new AddProbeCommand(
@@ -64,6 +67,7 @@ public sealed class ProbesController : ControllerBase
     }
 
     [HttpPost("probes/{id}/activate")]
+    [Authorize(Roles = "Admin,Investigator")]
     public async Task<ActionResult<ProbeDto>> Activate(string id, [FromQuery] string? application, CancellationToken cancellationToken)
     {
         var result = await _probeService.ActivateProbeAsync(id, application ?? "DefaultApp", cancellationToken);
@@ -75,6 +79,7 @@ public sealed class ProbesController : ControllerBase
     }
 
     [HttpPost("probes/{id}/deactivate")]
+    [Authorize(Roles = "Admin,Investigator")]
     public async Task<ActionResult<ProbeDto>> Deactivate(string id, [FromQuery] string? reason, CancellationToken cancellationToken)
     {
         var result = await _probeService.DeactivateProbeAsync(id, reason ?? "Operator deactivated", cancellationToken);

@@ -6,22 +6,28 @@ namespace RuntimeInvestigation.Infrastructure.Persistence.Repositories;
 public sealed class InMemoryInvestigationRepository : IInvestigationRepository
 {
     private readonly List<Investigation> _investigations = new();
+    public RuntimeInvestigation.Application.Common.Interfaces.ITenantContext? TenantContext { get; set; }
+
+    public InMemoryInvestigationRepository() { }
 
     public Task<Investigation?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        var item = _investigations.FirstOrDefault(x => x.Id == id);
+        var item = _investigations.FirstOrDefault(x => x.Id == id && (TenantContext == null || string.Equals(x.TenantId, TenantContext.TenantId, StringComparison.OrdinalIgnoreCase)));
         return Task.FromResult(item);
     }
 
     public Task<IReadOnlyList<Investigation>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IReadOnlyList<Investigation>>(_investigations.OrderByDescending(x => x.CreatedAt).ToList());
+        var items = TenantContext != null
+            ? _investigations.Where(x => string.Equals(x.TenantId, TenantContext.TenantId, StringComparison.OrdinalIgnoreCase))
+            : _investigations;
+        return Task.FromResult<IReadOnlyList<Investigation>>(items.OrderByDescending(x => x.CreatedAt).ToList());
     }
 
     public Task<IReadOnlyList<Investigation>> GetByApplicationIdAsync(string applicationId, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IReadOnlyList<Investigation>>(
-            _investigations.Where(x => x.ApplicationId == applicationId).OrderByDescending(x => x.CreatedAt).ToList());
+        var items = _investigations.Where(x => x.ApplicationId == applicationId && (TenantContext == null || string.Equals(x.TenantId, TenantContext.TenantId, StringComparison.OrdinalIgnoreCase)));
+        return Task.FromResult<IReadOnlyList<Investigation>>(items.OrderByDescending(x => x.CreatedAt).ToList());
     }
 
     public Task CreateAsync(Investigation investigation, CancellationToken cancellationToken = default)
