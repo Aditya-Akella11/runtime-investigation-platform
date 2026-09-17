@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DemoWorkflowService, Investigation } from '../../core/demo-workflow.service';
+import { TemplateService, TemplateInstantiationResult } from '../../core/template.service';
+import { TemplateSelectorComponent, TemplateSelectorResult } from './template-selector.component';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TemplateSelectorComponent],
   template: `
     <section class="panel">
       <div class="header-row">
@@ -14,7 +16,15 @@ import { DemoWorkflowService, Investigation } from '../../core/demo-workflow.ser
           <h2>Investigations</h2>
           <p class="hint">Active production investigations tracking anomalies, hypotheses, and probe evidence.</p>
         </div>
+        <button type="button" class="btn-template" (click)="showTemplateSelector = true">&#9881; From Template</button>
       </div>
+
+      <!-- Template selector modal -->
+      <app-template-selector
+        *ngIf="showTemplateSelector"
+        (selected)="onTemplateSelected($event)"
+        (cancelled)="showTemplateSelector = false"
+      ></app-template-selector>
 
       <div class="templates-box">
         <span class="label">Quick Templates:</span>
@@ -74,11 +84,17 @@ import { DemoWorkflowService, Investigation } from '../../core/demo-workflow.ser
     .btn-primary { width: 100%; background: #f8fafc; color: #0f172a; font-weight: 700; cursor: pointer; }
     .empty-state { text-align: center; padding: 2rem; color: #94a3b8; }
     @media (max-width: 1000px) { .form { grid-template-columns: 1fr; } }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .btn-template { background: rgba(139,92,246,0.2); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.4); padding: 0.45rem 1rem; border-radius: 999px; font-size: 0.85rem; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    .btn-template:hover { background: rgba(139,92,246,0.35); }
   `]
 })
 export class InvestigationsComponent implements OnInit {
   private readonly workflow = inject(DemoWorkflowService);
   private readonly router = inject(Router);
+  private readonly templateService = inject(TemplateService);
+
+  showTemplateSelector = false;
 
   investigations: Investigation[] = [];
   title = 'Payment failures & duplicate charges';
@@ -122,5 +138,19 @@ export class InvestigationsComponent implements OnInit {
   selectAndNavigate(id: string): void {
     this.workflow.setSelectedInvestigationId(id);
     this.router.navigate(['/runtime-probes']);
+  }
+
+  onTemplateSelected(result: TemplateSelectorResult): void {
+    this.showTemplateSelector = false;
+    this.templateService.createFromTemplate(result).subscribe({
+      next: (res: TemplateInstantiationResult) => {
+        if (res.investigation?.id) {
+          this.router.navigate(['/investigations', res.investigation.id]);
+        } else {
+          this.refresh();
+        }
+      },
+      error: err => alert('Failed to create from template: ' + (err.error?.error || err.message))
+    });
   }
 }

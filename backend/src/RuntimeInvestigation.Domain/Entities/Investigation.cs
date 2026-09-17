@@ -29,6 +29,48 @@ public class Investigation
     public InvestigationStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+    public ApprovalStatus ApprovalStatus { get; private set; } = ApprovalStatus.Draft;
+    public string? ApprovedBy { get; private set; }
+    public string? RejectionReason { get; private set; }
+    public DateTime? ApprovedAt { get; private set; }
+
+    public void SubmitForApproval()
+    {
+        if (ApprovalStatus != ApprovalStatus.Draft && ApprovalStatus != ApprovalStatus.Rejected)
+        {
+            throw new InvalidOperationException($"Cannot submit investigation for approval from {ApprovalStatus} status.");
+        }
+        ApprovalStatus = ApprovalStatus.PendingApproval;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Approve(string adminId)
+    {
+        if (string.IsNullOrWhiteSpace(adminId)) throw new ArgumentException("AdminId is required for approval.", nameof(adminId));
+        if (ApprovalStatus != ApprovalStatus.PendingApproval)
+        {
+            throw new InvalidOperationException($"Cannot approve investigation in {ApprovalStatus} status.");
+        }
+        ApprovalStatus = ApprovalStatus.Active;
+        ApprovedBy = adminId.Trim();
+        ApprovedAt = DateTime.UtcNow;
+        Status = InvestigationStatus.Investigating;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Reject(string adminId, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(adminId)) throw new ArgumentException("AdminId is required for rejection.", nameof(adminId));
+        if (string.IsNullOrWhiteSpace(reason)) throw new ArgumentException("Rejection reason is required.", nameof(reason));
+        if (ApprovalStatus != ApprovalStatus.PendingApproval)
+        {
+            throw new InvalidOperationException($"Cannot reject investigation in {ApprovalStatus} status.");
+        }
+        ApprovalStatus = ApprovalStatus.Rejected;
+        ApprovedBy = adminId.Trim();
+        RejectionReason = reason.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     public void Update(string title, string? description, InvestigationStatus status)
     {
@@ -55,4 +97,12 @@ public class Investigation
         if (!allowed) throw new InvalidOperationException($"Cannot transition investigation from {Status} to {next}.");
         Status = next; UpdatedAt = DateTime.UtcNow;
     }
+}
+
+public enum ApprovalStatus
+{
+    Draft,
+    PendingApproval,
+    Active,
+    Rejected
 }

@@ -11,7 +11,11 @@ public sealed record InvestigationDto(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     string TenantId = "default",
-    string CreatedBy = "system")
+    string CreatedBy = "system",
+    string ApprovalStatus = "Draft",
+    string? ApprovedBy = null,
+    string? RejectionReason = null,
+    DateTime? ApprovedAt = null)
 {
     public static InvestigationDto FromEntity(Investigation entity) =>
         new(
@@ -23,7 +27,11 @@ public sealed record InvestigationDto(
             entity.CreatedAt,
             entity.UpdatedAt,
             entity.TenantId,
-            entity.CreatedBy);
+            entity.CreatedBy,
+            entity.ApprovalStatus.ToString(),
+            entity.ApprovedBy,
+            entity.RejectionReason,
+            entity.ApprovedAt);
 }
 
 public sealed record CreateInvestigationCommand(

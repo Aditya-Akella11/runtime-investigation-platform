@@ -15,11 +15,25 @@ import { InvestigationService, InvestigationItem, ProbeItem, ProbeResultItem } f
         <div class="header-content">
           <h1>{{ investigation.title }}</h1>
           <span class="status-badge" [attr.data-status]="investigation.status">{{ investigation.status }}</span>
+          <span class="status-badge approval-badge" [attr.data-status]="investigation.approvalStatus || 'Draft'">Approval: {{ investigation.approvalStatus || 'Draft' }}</span>
         </div>
         <p class="description">{{ investigation.description }}</p>
         <div class="meta">
           <span>Application: <strong>{{ investigation.applicationId }}</strong></span>
-          <span>Created: {{ investigation.createdAtUtc | date:'short' }}</span>
+          <span>Created: {{ (investigation.createdAtUtc || investigation.createdAt) | date:'short' }}</span>
+          <span *ngIf="investigation.approvedBy">Approved by: <strong>{{ investigation.approvedBy }}</strong></span>
+          <span *ngIf="investigation.rejectionReason" class="text-danger">Reason: {{ investigation.rejectionReason }}</span>
+        </div>
+        <div class="approval-actions" style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+          <button *ngIf="!investigation.approvalStatus || investigation.approvalStatus === 'Draft' || investigation.approvalStatus === 'Rejected'" class="btn btn-primary" (click)="submitForApproval()">
+            Submit for Approval
+          </button>
+          <button *ngIf="investigation.approvalStatus === 'PendingApproval'" class="btn btn-success" (click)="approve()">
+            ✓ Approve Investigation
+          </button>
+          <button *ngIf="investigation.approvalStatus === 'PendingApproval'" class="btn btn-danger" (click)="reject()">
+            ✕ Reject Investigation
+          </button>
         </div>
       </header>
 
@@ -273,6 +287,38 @@ export class InvestigationDetailComponent implements OnInit {
     this.investigationService.getProbeResults(this.selectedProbeId).subscribe({
       next: res => this.results = res,
       error: () => this.results = []
+    });
+  }
+
+  submitForApproval(): void {
+    if (!this.investigation) return;
+    this.investigationService.submitForApproval(this.investigation.id).subscribe({
+      next: updated => {
+        this.investigation = updated;
+      },
+      error: err => alert('Failed to submit for approval: ' + (err.error?.error || err.message))
+    });
+  }
+
+  approve(): void {
+    if (!this.investigation) return;
+    this.investigationService.approveInvestigation(this.investigation.id).subscribe({
+      next: updated => {
+        this.investigation = updated;
+      },
+      error: err => alert('Failed to approve investigation: ' + (err.error?.error || err.message))
+    });
+  }
+
+  reject(): void {
+    if (!this.investigation) return;
+    const reason = prompt('Please enter rejection reason:');
+    if (!reason) return;
+    this.investigationService.rejectInvestigation(this.investigation.id, reason).subscribe({
+      next: updated => {
+        this.investigation = updated;
+      },
+      error: err => alert('Failed to reject investigation: ' + (err.error?.error || err.message))
     });
   }
 }

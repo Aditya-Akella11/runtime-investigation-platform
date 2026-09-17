@@ -10,4 +10,5 @@ public sealed class MongoDbSettings
     public string EvidenceCollectionName { get; set; } = "evidence";
     public string AuditCollectionName { get; set; } = "audit";
     public string UsersCollectionName { get; set; } = "users";
+    public string TemplatesCollectionName { get; set; } = "templates";
 }

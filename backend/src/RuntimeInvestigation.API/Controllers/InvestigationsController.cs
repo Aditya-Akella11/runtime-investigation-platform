@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuntimeInvestigation.Application.Features.Investigations;
 
+using RuntimeInvestigation.Application.Features.Approval;
+using RuntimeInvestigation.Application.Features.Templates;
+
 namespace RuntimeInvestigation.API.Controllers;
 
 [ApiController]
@@ -10,10 +13,17 @@ namespace RuntimeInvestigation.API.Controllers;
 public sealed class InvestigationsController : ControllerBase
 {
     private readonly InvestigationService _service;
+    private readonly ApprovalService? _approvalService;
+    private readonly TemplateService? _templateService;
 
-    public InvestigationsController(InvestigationService service)
+    public InvestigationsController(
+        InvestigationService service,
+        ApprovalService? approvalService = null,
+        TemplateService? templateService = null)
     {
         _service = service;
+        _approvalService = approvalService;
+        _templateService = templateService;
     }
 
     [HttpGet]
@@ -109,4 +119,60 @@ public sealed class InvestigationsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("{id}/submit")]
+    public async Task<ActionResult<InvestigationDto>> Submit(string id, CancellationToken cancellationToken)
+    {
+        if (_approvalService == null) return StatusCode(500, new { error = "Approval service not configured." });
+        var result = await _approvalService.SubmitForApprovalAsync(new SubmitApprovalCommand(id), cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error?.Message });
+        }
+        return Ok(result.Value);
+    }
+
+    [HttpPost("{id}/approve")]
+    public async Task<ActionResult<InvestigationDto>> Approve(string id, [FromBody] ApproveRequest? request, CancellationToken cancellationToken)
+    {
+        if (_approvalService == null) return StatusCode(500, new { error = "Approval service not configured." });
+        var result = await _approvalService.ApproveAsync(new ApproveInvestigationCommand(id, request?.AdminId), cancellationToken);
+        if (!result.IsSuccess)
+        {
+            if (result.Error?.Code == "Forbidden") return StatusCode(403, new { error = result.Error.Message });
+            if (result.Error?.Code == "NotFound") return NotFound(new { error = result.Error.Message });
+            return BadRequest(new { error = result.Error?.Message });
+        }
+        return Ok(result.Value);
+    }
+
+    [HttpPost("{id}/reject")]
+    public async Task<ActionResult<InvestigationDto>> Reject(string id, [FromBody] RejectRequest request, CancellationToken cancellationToken)
+    {
+        if (_approvalService == null) return StatusCode(500, new { error = "Approval service not configured." });
+        var result = await _approvalService.RejectAsync(new RejectInvestigationCommand(id, request.Reason, request.AdminId), cancellationToken);
+        if (!result.IsSuccess)
+        {
+            if (result.Error?.Code == "Forbidden") return StatusCode(403, new { error = result.Error.Message });
+            if (result.Error?.Code == "NotFound") return NotFound(new { error = result.Error.Message });
+            return BadRequest(new { error = result.Error?.Message });
+        }
+        return Ok(result.Value);
+    }
+
+    [HttpPost("from-template")]
+    public async Task<ActionResult<TemplateInstantiationResult>> CreateFromTemplate([FromBody] CreateFromTemplateCommand command, CancellationToken cancellationToken)
+    {
+        if (_templateService == null) return StatusCode(500, new { error = "Template service not configured." });
+        var result = await _templateService.CreateFromTemplateAsync(command, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error?.Message });
+        }
+        return Ok(result.Value);
+    }
 }
+
+public sealed record ApproveRequest(string? AdminId = null);
+public sealed record RejectRequest(string Reason, string? AdminId = null);
+
