@@ -8,7 +8,14 @@ export interface InvestigationItem {
   title: string;
   description: string;
   status: string;
-  createdAtUtc: string;
+  createdAtUtc?: string;
+  createdAt?: string;
+  tenantId?: string;
+  createdBy?: string;
+  approvalStatus?: string;
+  approvedBy?: string;
+  rejectionReason?: string;
+  approvedAt?: string;
 }
 
 export interface ProbeItem {
@@ -68,5 +75,21 @@ export class InvestigationService {
 
   getProbeResults(probeId: string, limit = 100): Observable<ProbeResultItem[]> {
     return this.http.get<ProbeResultItem[]>(`${this.baseUrl}/probes/${probeId}/results?limit=${limit}`);
+  }
+
+  submitForApproval(id: string): Observable<InvestigationItem> {
+    return this.http.post<InvestigationItem>(`${this.baseUrl}/investigations/${id}/submit`, {});
+  }
+
+  approveInvestigation(id: string, adminId?: string): Observable<InvestigationItem> {
+    return this.http.post<InvestigationItem>(`${this.baseUrl}/investigations/${id}/approve`, { adminId });
+  }
+
+  rejectInvestigation(id: string, reason: string, adminId?: string): Observable<InvestigationItem> {
+    return this.http.post<InvestigationItem>(`${this.baseUrl}/investigations/${id}/reject`, { reason, adminId });
+  }
+
+  createFromTemplate(payload: { templateId: string; applicationId: string; title?: string; description?: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/investigations/from-template`, payload);
   }
 }

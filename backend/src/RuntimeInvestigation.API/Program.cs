@@ -23,6 +23,7 @@ builder.Services.AddScoped<IInvestigationRepository, MongoInvestigationRepositor
 builder.Services.AddScoped<IProbeRepository, MongoProbeRepository>();
 builder.Services.AddScoped<IProbeResultRepository, MongoProbeResultRepository>();
 builder.Services.AddScoped<IUserRepository, MongoUserRepository>();
+builder.Services.AddScoped<RuntimeInvestigation.Application.Features.Templates.ITemplateRepository, MongoTemplateRepository>();
 builder.Services.AddSingleton<DemoWorkflowStore>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
@@ -57,12 +58,31 @@ builder.Services.AddScoped<ApplicationService>();
 builder.Services.AddScoped<InvestigationService>();
 builder.Services.AddScoped<ProbeService>();
 builder.Services.AddScoped<RuntimeInvestigation.Application.Features.Users.UserService>();
+builder.Services.AddScoped<RuntimeInvestigation.Application.Features.Templates.TemplateService>();
+builder.Services.AddScoped<RuntimeInvestigation.Application.Features.Approval.ApprovalService>();
 builder.Services.AddSingleton<MockAgentProbeDispatcher>();
 builder.Services.AddSingleton<IProbeDispatcher>(sp => sp.GetRequiredService<MockAgentProbeDispatcher>());
 builder.Services.AddSingleton<RuntimeInvestigation.Application.Features.Probes.IAgentDispatcher>(sp => sp.GetRequiredService<MockAgentProbeDispatcher>());
 builder.Services.AddHostedService<ProbeExpirationService>();
 
 var app = builder.Build();
+
+_ = Task.Run(async () =>
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var templateRepo = scope.ServiceProvider.GetService<RuntimeInvestigation.Application.Features.Templates.ITemplateRepository>();
+        if (templateRepo != null)
+        {
+            await RuntimeInvestigation.Infrastructure.Persistence.TemplateSeeder.SeedAsync(templateRepo);
+        }
+    }
+    catch
+    {
+        // Safe fallback if database is unreachable during startup
+    }
+});
 
 if (app.Environment.IsDevelopment())
 {
